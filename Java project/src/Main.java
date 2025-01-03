@@ -13,29 +13,23 @@ public class Main {
         var workspace = HeadlessWorkspace.newInstance();
         workspace.open(nlogoFile.toAbsolutePath().toString(), true);
         try {
-            var sb = new StringBuilder("""
-                    \\begin{tikzpicture}
-                    \\begin{axis}
-                        \\addplot+ [
-                            smooth,
-                        ] coordinates {
-                    (0,0)\s""");
             for(var i = 50; i <= 90; i+=5) {
                 workspace.command("setup");
                 workspace.command("set density " + i);
+                workspace.command("set probability-of-spread 85");
+                workspace.command("set south-wind-speed 0");
+                workspace.command("set west-wind-speed 0");
+                var strategy = "Even";
+                workspace.command("set strategy \"" + strategy + "\"");
                 workspace.command("random-seed 0");
-                workspace.command("setup");
-                workspace.command("repeat 150 [ go ]");
-                var value = (Double)workspace.report("percent-burned");
-                sb.append("("+i+","+value.intValue()+") ");
-                System.out.println("Density: " + i + " Percent burned: " + value + "%");
+                workspace.command("run-full");
+                var percentageBurned = ((Double)workspace.report("percent-burned")).intValue();
+                var villageDamaged = (Boolean)workspace.report("village-damaged");
+
+                System.out.println("Density: " + i + " Percent burned: " + percentageBurned + "% Village damaged: " +villageDamaged);
             }
             workspace.dispose();
-            sb.append("""
-                        };
-                    \\end{axis}
-                    \\end{tikzpicture}""");
-            System.out.println(sb);
+
 
         }
         catch(Exception ex) {

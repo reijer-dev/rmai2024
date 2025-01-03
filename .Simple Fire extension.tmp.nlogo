@@ -1,6 +1,7 @@
 globals [
   initial-trees   ;; how many trees (green patches) we started with
-  in-city-result
+  village-damaged-result
+  stop?
 ]
 
 to setup
@@ -21,6 +22,10 @@ to setup
    set pcolor yellow
   ]
 
+  set village-damaged-result false
+  set stop? false
+
+
   reset-ticks
 end
 
@@ -29,8 +34,7 @@ to go
 
 
   ;; stop the model when done
-   ;if all? patches [ pcolor != red ] [ stop ]
-  ;; if any? patches with [ in-city pxcor pycor and pcolor != yellow ] [ stop ]
+  if all? patches [ pcolor != red ] [ set stop? true ]
   ;; each burning tree (red patch) checks its 4 neighbors.
   ;; If any are unburned trees (green patches), change their probability
   ;; of igniting based on the wind direction
@@ -67,12 +71,21 @@ to go
         set probability probability + west-wind-speed
       ]
       if random 100 < probability [
+        if pcolor = yellow [ ;;village is damaged!
+          set village-damaged-result true
+        ]
         set pcolor red ;; to catch on fire
       ]
     ]
     set pcolor red - 3.5 ;; once the tree is burned, darken its color
   ]
   tick ;; advance the clock by one “tick”
+end
+
+to run-full
+  while [not stop?] [
+    go
+  ]
 end
 
 to-report in-city[x y]
@@ -85,6 +98,10 @@ end
 
 to-report percent-burned
   report ((count patches with [shade-of? pcolor red]) / initial-trees) * 100
+end
+
+to-report village-damaged
+  report village-damaged-result
 end
 
 
