@@ -6,11 +6,55 @@ globals [
 
 to setup
   clear-all
+
   ;; make some green trees
   ask patches [
     if (random 100) < density
     [ set pcolor green ]
-    ;; make a column of burning trees at the left-edge
+  ]
+
+  ;;do preburning
+  if strategy = "Even" [
+    ask patches [
+      if (random 100) < 10 and pcolor = green
+      [ set pcolor grey ]
+    ]
+  ]
+
+  if strategy = "Diagonal" [
+    ask patches [
+      let distanceToDiagonal pxcor + pycor
+      if abs distanceToDiagonal < 3
+      [ set pcolor grey ]
+    ]
+  ]
+
+  if strategy = "Omnidirectional" [
+    let x min-pxcor
+    let y min-pycor
+
+    let d 1
+
+    repeat 100 [
+      line grey 3 d x y (x + 20) (y + 20)
+      set x x + 30
+      if x >= max-pxcor [
+        set x min-pxcor
+        set y y + 30
+      ]
+      set d d + 1
+      if d = 5 [ set d 1 ]
+    ]
+  ]
+
+  if strategy = "Wall" [
+    ask patches with [ around-city pxcor pycor ] [
+      set pcolor grey
+    ]
+  ]
+
+  ;; make a column of burning trees at the left-edge
+  ask patches [
     if pxcor = min-pxcor + 30
     [ set pcolor red ]
   ]
@@ -25,7 +69,35 @@ to setup
   set village-damaged-result false
   set stop? false
 
+
   reset-ticks
+end
+
+to line [mcolor width dir x1 y1 x2 y2]
+  ask patches [
+    if pxcor > x1 and pxcor < x2 and pycor > y1 and pycor < y2 [
+      if dir = 1 [
+        let d (pxcor - x1) - (pycor - y1)
+        if abs d < 3
+        [ set pcolor mcolor ]
+      ]
+      if dir = 2 [
+        let d (pycor - y1)
+        if abs d < 3
+        [ set pcolor mcolor ]
+      ]
+      if dir = 3 [
+        let d (pxcor - x1) - (y2 - pycor)
+        if abs d < 3
+        [ set pcolor mcolor ]
+      ]
+      if dir = 4 [
+        let d (pxcor - x1)
+        if abs d < 3
+        [ set pcolor mcolor ]
+      ]
+    ]
+  ]
 end
 
 to go
@@ -33,7 +105,8 @@ to go
 
 
   ;; stop the model when done
-  if all? patches [ pcolor != red ] [ set stop? true ]
+  if all? patches [ pcolor != red ] [ stop
+    set stop? true ]
   ;; each burning tree (red patch) checks its 4 neighbors.
   ;; If any are unburned trees (green patches), change their probability
   ;; of igniting based on the wind direction
@@ -95,12 +168,24 @@ to-report in-city[x y]
   report true
 end
 
+to-report around-city[x y]
+  if x > 93 [report false]
+  if x < 67 [report false]
+  if y > 93 [report false]
+  if y < 67 [report false]
+  report true
+end
+
 to-report percent-burned
   report ((count patches with [shade-of? pcolor red]) / initial-trees) * 100
 end
 
 to-report village-damaged
   report village-damaged-result
+end
+
+to-report preburned-percentage
+   report (count patches with [pcolor = grey] / initial-trees) * 100
 end
 
 
@@ -111,7 +196,7 @@ GRAPHICS-WINDOW
 200
 10
 810
-521
+621
 -1
 -1
 2.0
@@ -126,8 +211,8 @@ GRAPHICS-WINDOW
 1
 -150
 150
--125
-125
+-150
+150
 1
 1
 1
@@ -154,7 +239,7 @@ density
 density
 0.0
 100.0
-71.0
+82.0
 1.0
 1
 %
@@ -203,7 +288,7 @@ probability-of-spread
 probability-of-spread
 0
 100
-85.0
+62.0
 1
 1
 %
@@ -218,7 +303,7 @@ south-wind-speed
 south-wind-speed
 -25
 25
--25.0
+-9.0
 1
 1
 NIL
@@ -233,7 +318,7 @@ west-wind-speed
 west-wind-speed
 -25
 25
-25.0
+17.0
 1
 1
 NIL
@@ -246,8 +331,19 @@ CHOOSER
 350
 strategy
 strategy
-"Even" "Diagonal" "Omnidirectional" "Wall"
-0
+"Even" "Diagonal" "Omnidirectional" "Wall" "Nothing"
+4
+
+MONITOR
+40
+375
+127
+420
+% preburned
+preburned-percentage
+1
+1
+11
 
 @#$#@#$#@
 ## ACKNOWLEDGMENT
