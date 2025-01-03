@@ -29,7 +29,8 @@ to go
 
 
   ;; stop the model when done
-  if all? patches [ pcolor != red ] [ stop ]
+   ;if all? patches [ pcolor != red ] [ stop ]
+  ;; if any? patches with [ in-city pxcor pycor and pcolor != yellow ] [ stop ]
   ;; each burning tree (red patch) checks its 4 neighbors.
   ;; If any are unburned trees (green patches), change their probability
   ;; of igniting based on the wind direction
