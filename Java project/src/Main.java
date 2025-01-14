@@ -1,11 +1,23 @@
 import org.nlogo.headless.HeadlessWorkspace;
-import java.io.IOException;
+
+import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.util.Arrays;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+
+import static java.lang.System.exit;
 
 public class Main {
 
+    static List<String> csvLines = new ArrayList<>();
+    static List<HeadlessWorkspace> availableWorkspaces = new ArrayList<>();
+    //static Semaphore workspaceSemaphore;
+    static ExecutorService workerThreadPool;
+    static int amountOfRanSimulations = 0;
+
+    static int[] windSpeeds = {3, 7, 23};
     static float[][] windList = {
             // South and West speeds for 0 m/s -> 1x want, 0 wind.
             {0, 0},
@@ -18,28 +30,56 @@ public class Main {
     };
 
 
-    public static void main(String[] argv) throws IOException {
-        // phase2();
-        phase3();
+    public static void main(String[] argv) {
+
+        try {
+            //Initialize workspaces
+            var nlogoFile = Paths.get(System.getProperty("user.dir"), "..", "Simple Fire extension.nlogo");
+            int hardwareThreads = Runtime.getRuntime().availableProcessors();
+            hardwareThreads = 6;
+            workerThreadPool = Executors.newFixedThreadPool(hardwareThreads);
+            //workspaceSemaphore = new Semaphore(hardwareThreads);
+
+            //Create as many workspaces as there are threads
+            for(var i = 0; i < hardwareThreads; i++){
+                var workspace = HeadlessWorkspace.newInstance();
+                workspace.open(nlogoFile.toAbsolutePath().toString());
+                availableWorkspaces.add(workspace);
+                System.out.println("# Workspaces: " + availableWorkspaces.size());
+            }
+
+            phase3();
+            synchronized (workerThreadPool) {
+                workerThreadPool.wait();
+            }
+
+            //Write CSV
+            var csvFile = Paths.get(System.getProperty("user.dir"), "..", "output.csv");
+            Files.write(csvFile, csvLines);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        exit(0);
     }
 
     static void phase2() {
         // In which the forest density is being adjusted between 50 up until 90, in steps of 5.
-        for (var i = 1; i <=5; i += 1) {
+        for (var i = 1; i <= 5; i += 1) {
             String strategy = getStrategy(i);
-            for (var density = 50; density <= 90; density += 5) {
-                startWorkspace(density, 0, strategy, 0);
+            for (var density = 50; density <= 50; density += 5) {
+                scheduleSimulation(density, 0, strategy, 0);
             }
         }
     }
 
     static void phase3() {
         // In which the wind-speed and wind-direction will be added and adjusted, 0/3/7/23 N/W counts 8
-        for (var i = 1; i <=5; i += 1) {
+        for (var i = 1; i <= 5; i += 1) {
             String strategy = getStrategy(i);
-            for (var density=50; density<=90; density+=5) {
+            for (var density = 50; density <= 90; density += 5) {
                 for (int z = 0; z < windList.length; z++) {
-                    startWorkspace(density, z, strategy, 0);
+                    scheduleSimulation(density, z, strategy, 0);
                 }
             }
         }
@@ -55,35 +95,63 @@ public class Main {
         };
     }
 
+    static void scheduleSimulation(int forestDensity, int windListIndex, String strategy, int ignitionLocation) {
+        workerThreadPool.submit(() -> {
+            HeadlessWorkspace workspace = null;
+            synchronized (availableWorkspaces) {
+                workspace = availableWorkspaces.removeFirst();
+            }
+            try {
+                //workspaceSemaphore.wait();
 
-    static void startWorkspace(int forestDensity, int windListIndex, String strategy, int ignitionLocation) {
-        HeadlessWorkspace workspace = HeadlessWorkspace.newInstance();
-        try {
-            var nlogoFile = Paths.get(System.getProperty("user.dir"), "..", "Simple Fire extension.nlogo");
-            workspace.open(nlogoFile.toAbsolutePath().toString());
-            workspace.command("setup");
-            workspace.command("set density " + forestDensity);
-            workspace.command("set probability-of-spread 70");
-            workspace.command("set south-wind-speed " + windList[windListIndex][0]);
-            workspace.command("set west-wind-speed " + windList[windListIndex][1]);
-            workspace.command("set strategy \"" + strategy + "\"");
-            workspace.command("random-seed 0");
-            workspace.command("run-full");
-            var percentageBurned = ((Double)workspace.report("percent-burned")).intValue();
-            var villageDamaged = (Boolean)workspace.report("village-damaged");
+                workspace.command("setup");
+                workspace.command("set density " + forestDensity);
+                workspace.command("set probability-of-spread 70");
+                workspace.command("set south-wind-speed " + windList[windListIndex][0]);
+                workspace.command("set west-wind-speed " + windList[windListIndex][1]);
+                workspace.command("set strategy \"" + strategy + "\"");
+                workspace.command("random-seed 0");
+                workspace.command("run-full");
+                var percentageBurned = ((Double) workspace.report("percent-burned"));
+                var villageDamaged = (Boolean) workspace.report("village-damaged");
 
-            System.out.println("Strategy: " + strategy +
-                    ", Density: " + forestDensity +
-                    ", SouthWindSpeed: " + windList[windListIndex][0] +
-                    ", WestWindSpeed: " + windList[windListIndex][1] +
-                    ", Percent burned: " + percentageBurned +
-                    "%, Village damaged: " +villageDamaged);
-            workspace.dispose();
-        }
+                amountOfRanSimulations++;
 
-        catch(Exception ex) {
-            ex.printStackTrace();
-        }
+                //workspaceSemaphore.release();
+
+                var windSpeed = 0;
+                if (windListIndex > 0)
+                    windSpeed = windSpeeds[(windListIndex - 1) / 8];
+
+                var direction = 0;
+                if (windListIndex == 0)
+                    direction = 1;
+                else if (windListIndex <= 8)
+                    direction = windListIndex;
+                else if (windListIndex <= 16)
+                    direction = windListIndex - 8;
+                else if (windListIndex <= 24)
+                    direction = windListIndex - 16;
+
+                String line = String.format("%d,%d,%d,%s,%.2f,%s",
+                        forestDensity,
+                        windSpeed,
+                        direction,
+                        strategy,
+                        percentageBurned,
+                        villageDamaged ? "True" : "False"
+                );
+                csvLines.add(line);
+                System.out.print(amountOfRanSimulations + "\r");
+            } catch (Exception ex) {
+                ex.printStackTrace();
+            }
+            finally {
+                synchronized (availableWorkspaces) {
+                    availableWorkspaces.add(workspace);
+                }
+            }
+        });
     }
 }
 
