@@ -69,7 +69,6 @@ to setup
   set village-damaged-result false
   set stop? false
 
-
   reset-ticks
 end
 
@@ -179,10 +178,6 @@ end
 
 to-report percent-burned
   report ((count patches with [shade-of? pcolor red]) / initial-trees) * 100
-end
-
-to-report village-damaged
-  report village-damaged-result
 end
 
 to-report preburned-percentage
