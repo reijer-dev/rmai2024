@@ -16,6 +16,7 @@ public class Main {
     //static Semaphore workspaceSemaphore;
     static ExecutorService workerThreadPool;
     static int amountOfRanSimulations = 0;
+    static int amountOfSimulationsToRun = 0;
 
     static int[] windSpeeds = {3, 7, 23};
     static float[][] windList = {
@@ -142,7 +143,7 @@ public class Main {
                         villageDamaged ? "True" : "False"
                 );
                 csvLines.add(line);
-                System.out.print(amountOfRanSimulations + "\r");
+                System.out.print(amountOfRanSimulations + " / " + amountOfSimulationsToRun + "\r");
             } catch (Exception ex) {
                 ex.printStackTrace();
             }
@@ -152,6 +153,7 @@ public class Main {
                 }
             }
         });
+        amountOfSimulationsToRun++;
     }
 }
 
