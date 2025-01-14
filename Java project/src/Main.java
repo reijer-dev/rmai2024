@@ -76,12 +76,12 @@ public class Main {
             workspace.command("random-seed 0");
             workspace.command("run-full");
             var percentageBurned = ((Double)workspace.report("percent-burned")).intValue();
-            var villageDamaged = (Boolean)workspace.report("village-damaged-result");
+            var villageDamaged = (Boolean)workspace.report("village-damaged");
 
             csvLines.add(String.format("%i,%i,%i,%s,%.2f,%s",
                     forestDensity,
-                    windSpeed,
-                    windDirection,
+                    1,
+                    1,
                     strategy,
                     percentageBurned,
                     villageDamaged ? "True" : "False"

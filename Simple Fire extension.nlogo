@@ -1,7 +1,8 @@
 globals [
   initial-trees   ;; how many trees (green patches) we started with
-  village-damaged-result
+  village-damaged
   stop?
+  preburned-percentage
 ]
 
 to setup
@@ -12,6 +13,13 @@ to setup
     if (random 100) < density
     [ set pcolor green ]
   ]
+
+  ask patches with [ in-city pxcor pycor ] [
+   set pcolor yellow
+  ]
+
+  ;; keep track of how many trees there are
+  set initial-trees count patches with [pcolor = green]
 
   ;;do preburning
   if strategy = "Even" [
@@ -24,7 +32,7 @@ to setup
   if strategy = "Diagonal" [
     ask patches [
       let distanceToDiagonal pxcor + pycor
-      if abs distanceToDiagonal < 3
+      if abs distanceToDiagonal < 3 and pcolor = green
       [ set pcolor grey ]
     ]
   ]
@@ -48,25 +56,21 @@ to setup
   ]
 
   if strategy = "Wall" [
-    ask patches with [ around-city pxcor pycor ] [
+    ask patches with [ around-city pxcor pycor and pcolor = green ] [
       set pcolor grey
     ]
   ]
+
+  set preburned-percentage (count patches with [pcolor = grey] / initial-trees) * 100
 
   ;; make a column of burning trees at the left-edge
   ask patches [
     if pxcor = min-pxcor + 30
     [ set pcolor red ]
   ]
-  ;; keep track of how many trees there are
-  set initial-trees count patches with [pcolor = green]
 
 
-  ask patches with [ in-city pxcor pycor ] [
-   set pcolor yellow
-  ]
-
-  set village-damaged-result false
+  set village-damaged false
   set stop? false
 
   reset-ticks
@@ -77,22 +81,22 @@ to line [mcolor width dir x1 y1 x2 y2]
     if pxcor > x1 and pxcor < x2 and pycor > y1 and pycor < y2 [
       if dir = 1 [
         let d (pxcor - x1) - (pycor - y1)
-        if abs d < 3
+        if abs d < 3 and pcolor = green
         [ set pcolor mcolor ]
       ]
       if dir = 2 [
         let d (pycor - y1)
-        if abs d < 3
+        if abs d < 3 and pcolor = green
         [ set pcolor mcolor ]
       ]
       if dir = 3 [
         let d (pxcor - x1) - (y2 - pycor)
-        if abs d < 3
+        if abs d < 3 and pcolor = green
         [ set pcolor mcolor ]
       ]
       if dir = 4 [
         let d (pxcor - x1)
-        if abs d < 3
+        if abs d < 3 and pcolor = green
         [ set pcolor mcolor ]
       ]
     ]
@@ -144,7 +148,7 @@ to go
       ]
       if random 100 < probability [
         if pcolor = yellow [ ;;village is damaged!
-          set village-damaged-result true
+          set village-damaged true
         ]
         set pcolor red ;; to catch on fire
       ]
@@ -178,10 +182,6 @@ end
 
 to-report percent-burned
   report ((count patches with [shade-of? pcolor red]) / initial-trees) * 100
-end
-
-to-report preburned-percentage
-   report (count patches with [pcolor = grey] / initial-trees) * 100
 end
 
 
@@ -235,7 +235,7 @@ density
 density
 0.0
 100.0
-82.0
+88.0
 1.0
 1
 %
@@ -299,7 +299,7 @@ south-wind-speed
 south-wind-speed
 -25
 25
--9.0
+0.4
 1
 1
 NIL
@@ -314,7 +314,7 @@ west-wind-speed
 west-wind-speed
 -25
 25
-17.0
+25.0
 1
 1
 NIL
@@ -328,7 +328,7 @@ CHOOSER
 strategy
 strategy
 "Even" "Diagonal" "Omnidirectional" "Wall" "Nothing"
-4
+0
 
 MONITOR
 40
