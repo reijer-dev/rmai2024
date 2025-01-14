@@ -1,21 +1,16 @@
 import org.nlogo.headless.HeadlessWorkspace;
 import java.io.IOException;
 import java.nio.file.Paths;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
 public class Main {
-
-    List<String> csvLines = new ArrayList<>();
-
     public static void main(String[] argv) throws IOException {
-        var main = new Main();
-        main.phase2();
+        phase2();
         // phase3();
     }
 
-    void phase2() {
+    static void phase2() {
         // In which the forest density is being adjusted between 50 up until 90, in steps of 5.
         for (var i = 1; i <=5; i += 1) {
             String strategy = getStrategy(i);
@@ -25,7 +20,7 @@ public class Main {
         }
     }
 
-    void phase3() {
+    static void phase3() {
         // In which the wind-speed and wind-direction will be added and adjusted, 0/3/7/23 N/W counts 8
         for (var i = 1; i <=5; i += 1) {
             String strategy = getStrategy(i);
@@ -62,7 +57,8 @@ public class Main {
         return speeds;
     }
 
-    void startWorkspace(int forestDensity, int southWindSpeed, int westWindSpeed, String strategy, int ignitionLocation) {
+
+    static void startWorkspace(int forestDensity, int southWindSpeed, int westWindSpeed, String strategy, int ignitionLocation) {
         HeadlessWorkspace workspace = HeadlessWorkspace.newInstance();
         try {
             var nlogoFile = Paths.get(System.getProperty("user.dir"), "..", "Simple Fire extension.nlogo");
@@ -78,14 +74,12 @@ public class Main {
             var percentageBurned = ((Double)workspace.report("percent-burned")).intValue();
             var villageDamaged = (Boolean)workspace.report("village-damaged");
 
-            csvLines.add(String.format("%i,%i,%i,%s,%.2f,%s",
-                    forestDensity,
-                    1,
-                    1,
-                    strategy,
-                    percentageBurned,
-                    villageDamaged ? "True" : "False"
-                    ));
+            System.out.println("Strategy: " + strategy +
+                    ", Density: " + forestDensity +
+                    ", SouthWindSpeed: " + southWindSpeed +
+                    ", WestWindSpeed: " + westWindSpeed +
+                    ", Percent burned: " + percentageBurned +
+                    "%, Village damaged: " +villageDamaged);
             workspace.dispose();
         }
 
