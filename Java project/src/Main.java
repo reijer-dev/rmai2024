@@ -47,7 +47,7 @@ public class Main {
                 System.out.println("# Workspaces: " + availableWorkspaces.size() + "/" + hardwareThreads);
             }
 
-            var phase = 4;
+            var phase = 2;
 
             startMillis = System.currentTimeMillis();
             if(phase == 2) phase2();
@@ -80,7 +80,9 @@ public class Main {
         for (var i = 1; i <= 2; i += 1) {
             String strategy = getStrategy(i);
             for (var density = 50; density <= 55; density += 5) {
-                scheduleSimulation(density, 0, strategy, 0);
+                for (int seed = 0; seed < 4; seed++) {
+                    scheduleSimulation(density, 0, strategy, 0, seed);
+                }
             }
         }
     }
@@ -90,7 +92,9 @@ public class Main {
         for (var i = 1; i <= 5; i += 1) {
             String strategy = getStrategy(i);
             for (var density = 50; density <= 90; density += 5) {
-                scheduleSimulation(density, 0, strategy, 0);
+                for (int seed = 0; seed < 4; seed++) {
+                    scheduleSimulation(density, 0, strategy, 0, seed);
+                }
             }
         }
     }
@@ -101,7 +105,9 @@ public class Main {
             String strategy = getStrategy(i);
             for (var density = 50; density <= 90; density += 5) {
                 for (int z = 0; z < windList.length; z++) {
-                    scheduleSimulation(density, z, strategy, 0);
+                    for (int seed = 0; seed < 4; seed++) {
+                        scheduleSimulation(density, z, strategy, 0, seed);
+                    }
                 }
             }
         }
@@ -114,7 +120,9 @@ public class Main {
             for (var density = 50; density <= 90; density += 5) {
                 for (int z = 0; z < windList.length; z++) {
                     for (int location = 1; location <= 4; location += 1) {
-                        scheduleSimulation(density, z, strategy, location);
+                        for (int seed = 0; seed < 4; seed++) {
+                            scheduleSimulation(density, z, strategy, location, seed);
+                        }
                     }
 
                 }
@@ -132,20 +140,22 @@ public class Main {
         };
     }
 
-    static void scheduleSimulation(int forestDensity, int windListIndex, String strategy, int ignitionLocation) {
+    static void scheduleSimulation(int forestDensity, int windListIndex, String strategy, int ignitionLocation, int seed) {
         tasks.add(() -> {
             HeadlessWorkspace workspace = null;
             synchronized (availableWorkspaces) {
                 workspace = availableWorkspaces.removeFirst();
             }
+
             try {
                 workspace.command("setup");
                 workspace.command("set density " + forestDensity);
                 workspace.command("set probability-of-spread 70");
+                //workspace.command("set probability-of-spread 70");
                 workspace.command("set south-wind-speed " + windList[windListIndex][0]);
                 workspace.command("set west-wind-speed " + windList[windListIndex][1]);
                 workspace.command("set strategy \"" + strategy + "\"");
-                workspace.command("random-seed 0");
+                workspace.command("random-seed " + seed);
                 workspace.command("run-full");
                 var percentagePreburned = ((Double) workspace.report("preburned-percentage"));
                 var percentageBurned = ((Double) workspace.report("percent-burned"));
@@ -168,14 +178,15 @@ public class Main {
 
                 printProgress();
 
-                var result = String.format(Locale.US, "%d,%d,%d,%s,%.2f,%.2f,%s",
+                var result = String.format(Locale.US, "%d,%d,%d,%s,%.2f,%.2f,%s,%d",
                         forestDensity,
                         windSpeed,
                         direction,
                         strategy,
                         percentageBurned,
                         percentagePreburned,
-                        villageDamaged ? "True" : "False"
+                        villageDamaged ? "True" : "False",
+                        seed
                 );
                 return result;
             } catch (Exception ex) {
