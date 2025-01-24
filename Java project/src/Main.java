@@ -40,14 +40,14 @@ public class Main {
             workerThreadPool = Executors.newFixedThreadPool(hardwareThreads);
 
             //Create as many workspaces as there are threads
-            for (var i = 0; i < hardwareThreads; i++) {
+            for (var i = 0; i < hardwareThreads + 3; i++) {
                 var workspace = HeadlessWorkspace.newInstance();
                 workspace.open(nlogoFile.toAbsolutePath().toString());
                 availableWorkspaces.add(workspace);
                 System.out.println("# Workspaces: " + availableWorkspaces.size() + "/" + hardwareThreads);
             }
 
-            var phase = 2;
+            var phase = 4;
 
             startMillis = System.currentTimeMillis();
             if(phase == 2) phase2();
