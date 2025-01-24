@@ -39,12 +39,13 @@ to setup
 
   if strategy = "Omnidirectional" [
     let x min-pxcor
-    let y min-pycor
+    let y min-pycor + 20
 
     let d 1
+    let i 1
 
     repeat 100 [
-      line grey 3 d x y (x + 20) (y + 20)
+      line grey 3 d x y 20
       set x x + 30
       if x >= max-pxcor [
         set x min-pxcor
@@ -76,30 +77,28 @@ to setup
   reset-ticks
 end
 
-to line [mcolor width dir x1 y1 x2 y2]
-  ask patches [
-    if pxcor > x1 and pxcor < x2 and pycor > y1 and pycor < y2 [
-      if dir = 1 [
-        let d (pxcor - x1) - (pycor - y1)
-        if abs d < 3 and pcolor = green
-        [ set pcolor mcolor ]
-      ]
-      if dir = 2 [
-        let d (pycor - y1)
-        if abs d < 3 and pcolor = green
-        [ set pcolor mcolor ]
-      ]
-      if dir = 3 [
-        let d (pxcor - x1) - (y2 - pycor)
-        if abs d < 3 and pcolor = green
-        [ set pcolor mcolor ]
-      ]
-      if dir = 4 [
-        let d (pxcor - x1)
-        if abs d < 3 and pcolor = green
-        [ set pcolor mcolor ]
-      ]
+to line [mcolor width d x1 y1 l]
+  crt 1 [                 ;; create a single drawing turtle
+    if d = 1 [ setxy x1 y1 ]
+    if d = 2 [ setxy x1 + 10 y1 ]
+    if d = 3 [ setxy x1 + 20 y1 ]
+    if d = 4 [ setxy x1 y1 - 10 ]
+
+    if d = 1 or d = 3 [ set l l / sqrt 2 ]
+
+    let i 0
+    while [ l > i ] [   ;; make the turtle continue to move until the line is drawn
+      ask patches in-radius 1 [ if pcolor = green [ set pcolor grey ] ]
+
+      if d = 1 [ setxy xcor + 1 ycor - 1 ]
+      if d = 2 [ setxy xcor ycor - 1 ]
+      if d = 3 [ setxy xcor - 1 ycor - 1 ]
+      if d = 4 [ setxy xcor + 1 ycor ]
+
+      set i i + 1
     ]
+
+    die                   ;; remove the turtle
   ]
 end
 
@@ -326,7 +325,7 @@ CHOOSER
 strategy
 strategy
 "Even" "Diagonal" "Omnidirectional" "Wall" "Nothing"
-3
+2
 
 MONITOR
 40
