@@ -47,7 +47,7 @@ public class Main {
                 System.out.println("# Workspaces: " + availableWorkspaces.size() + "/" + hardwareThreads);
             }
 
-            var phase = 2;
+            var phase = 4;
 
             startMillis = System.currentTimeMillis();
             if(phase == 2) phase2();
@@ -61,7 +61,7 @@ public class Main {
                     throw new RuntimeException(e);
                 }
             }).toList());
-            csvLines.addFirst("density,wind_speed,direction,strategy,perc_burned,perc_preburned,village_damaged");
+            csvLines.addFirst("density,wind_speed,direction,strategy,ignition_location,perc_burned,perc_preburned,village_damaged,seed");
 
             //Write CSV
             var csvFile = Paths.get(System.getProperty("user.dir"), "..", "phase-"+phase+".csv");
@@ -81,7 +81,7 @@ public class Main {
             String strategy = getStrategy(i);
             for (var density = 50; density <= 55; density += 5) {
                 for (int seed = 0; seed < 4; seed++) {
-                    scheduleSimulation(density, 0, strategy, 0, seed);
+                    scheduleSimulation(density, 0, strategy, 1, seed);
                 }
             }
         }
@@ -93,7 +93,7 @@ public class Main {
             String strategy = getStrategy(i);
             for (var density = 50; density <= 90; density += 5) {
                 for (int seed = 0; seed < 4; seed++) {
-                    scheduleSimulation(density, 0, strategy, 0, seed);
+                    scheduleSimulation(density, 0, strategy, 1, seed);
                 }
             }
         }
@@ -106,7 +106,7 @@ public class Main {
             for (var density = 50; density <= 90; density += 5) {
                 for (int z = 0; z < windList.length; z++) {
                     for (int seed = 0; seed < 4; seed++) {
-                        scheduleSimulation(density, z, strategy, 0, seed);
+                        scheduleSimulation(density, z, strategy, 1, seed);
                     }
                 }
             }
@@ -151,7 +151,7 @@ public class Main {
                 workspace.command("setup");
                 workspace.command("set density " + forestDensity);
                 workspace.command("set probability-of-spread 70");
-                //workspace.command("set probability-of-spread 70");
+                workspace.command("set ignition-location " + ignitionLocation);
                 workspace.command("set south-wind-speed " + windList[windListIndex][0]);
                 workspace.command("set west-wind-speed " + windList[windListIndex][1]);
                 workspace.command("set strategy \"" + strategy + "\"");
@@ -178,11 +178,12 @@ public class Main {
 
                 printProgress();
 
-                var result = String.format(Locale.US, "%d,%d,%d,%s,%.2f,%.2f,%s,%d",
+                var result = String.format(Locale.US, "%d,%d,%d,%s,%d,%.2f,%.2f,%s,%d",
                         forestDensity,
                         windSpeed,
                         direction,
                         strategy,
+                        ignitionLocation,
                         percentageBurned,
                         percentagePreburned,
                         villageDamaged ? "True" : "False",

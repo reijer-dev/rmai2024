@@ -64,11 +64,35 @@ to setup
 
   set preburned-percentage (count patches with [pcolor = grey] / initial-trees) * 100
 
-  ;; make a column of burning trees at the left-edge
+  ;; determine ignition location
+  let rx random(max-pxcor)
+  let ry random(max-pycor)
+  let ix 0
+  let iy 0
+  if ignition-location = 1 [
+    set ix rx * -1
+    set iy ry
+  ]
+  if ignition-location = 2 [
+    set ix rx
+    set iy ry
+  ]
+  if ignition-location = 3 [
+    set ix rx
+    set iy ry * -1
+  ]
+  if ignition-location = 4 [
+    set ix rx * -1
+    set iy ry * -1
+  ]
+
+
+  ;draw ignition location
   ask patches [
-    if pxcor = min-pxcor + 30
+    if pxcor > (ix - 3) and pxcor < (ix + 3) and pycor > (iy - 3) and pycor < (iy + 3)
     [ set pcolor red ]
   ]
+
 
 
   set village-damaged false
@@ -232,7 +256,7 @@ density
 density
 0.0
 100.0
-88.0
+81.0
 1.0
 1
 %
@@ -281,7 +305,7 @@ probability-of-spread
 probability-of-spread
 0
 100
-62.0
+73.0
 1
 1
 %
@@ -296,7 +320,7 @@ south-wind-speed
 south-wind-speed
 -25
 25
-0.4
+0.0
 1
 1
 NIL
@@ -311,7 +335,7 @@ west-wind-speed
 west-wind-speed
 -25
 25
-25.0
+0.0
 1
 1
 NIL
@@ -325,7 +349,7 @@ CHOOSER
 strategy
 strategy
 "Even" "Diagonal" "Omnidirectional" "Wall" "Nothing"
-2
+4
 
 MONITOR
 40
@@ -337,6 +361,16 @@ preburned-percentage
 1
 1
 11
+
+CHOOSER
+25
+445
+163
+490
+ignition-location
+ignition-location
+1 2 3 4
+3
 
 @#$#@#$#@
 ## ACKNOWLEDGMENT
