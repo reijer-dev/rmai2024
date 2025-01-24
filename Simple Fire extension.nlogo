@@ -173,11 +173,9 @@ to-report in-city[x y]
 end
 
 to-report around-city[x y]
-  if x > 93 [report false]
-  if x < 67 [report false]
-  if y > 93 [report false]
-  if y < 67 [report false]
-  report true
+  let d sqrt ( ((x - 80) ^ 2) + ((y - 80) ^ 2) )
+  if d < 50 and d > 45 [ report true ]
+  report false
 end
 
 to-report percent-burned
@@ -328,7 +326,7 @@ CHOOSER
 strategy
 strategy
 "Even" "Diagonal" "Omnidirectional" "Wall" "Nothing"
-0
+3
 
 MONITOR
 40
