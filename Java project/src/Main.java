@@ -3,15 +3,17 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+import java.util.concurrent.*;
+
 import static java.lang.System.exit;
 
 public class Main {
-    static List<String> csvLines = new ArrayList<>();
-    static List<HeadlessWorkspace> availableWorkspaces = new ArrayList<>();
+    static final List<HeadlessWorkspace> availableWorkspaces = new ArrayList<>();
+    static final ArrayList<Callable<String>> tasks = new ArrayList<>();
     static ExecutorService workerThreadPool;
     static int amountOfRanSimulations = 0;
+    static float averageMillisPerSim = 0f;
+    static long startMillis = 0;
     static int amountOfSimulationsToRun = 0;
     static int[] windSpeeds = {3, 7, 23};
     static float[][] windList = {
@@ -28,10 +30,11 @@ public class Main {
 
     public static void main(String[] argv) {
         try {
+
             //Initialize workspaces
             var nlogoFile = Paths.get(System.getProperty("user.dir"), "..", "Simple Fire extension.nlogo");
             int hardwareThreads = Runtime.getRuntime().availableProcessors();
-            // hardwareThreads = 6;
+            hardwareThreads = 8;
             workerThreadPool = Executors.newFixedThreadPool(hardwareThreads);
 
             //Create as many workspaces as there are threads
@@ -39,19 +42,30 @@ public class Main {
                 var workspace = HeadlessWorkspace.newInstance();
                 workspace.open(nlogoFile.toAbsolutePath().toString());
                 availableWorkspaces.add(workspace);
-                System.out.println("# Workspaces: " + availableWorkspaces.size());
+                System.out.println("# Workspaces: " + availableWorkspaces.size() + "/" + hardwareThreads);
             }
 
-            testphase();
-            // phase2();
-            // phase3();
-            // phase4();
-            synchronized (workerThreadPool) {
-                workerThreadPool.wait();
-            }
+            var phase = 4;
+
+            startMillis = System.currentTimeMillis();
+            if(phase == 2) phase2();
+            else if(phase == 3) phase3();
+            else if(phase == 4) phase4();
+            else testphase();
+            var csvLines = workerThreadPool.invokeAll(tasks).stream().map(stringFuture -> {
+                try {
+                    return stringFuture.get();
+                } catch (InterruptedException e) {
+                    throw new RuntimeException(e);
+                } catch (ExecutionException e) {
+                    throw new RuntimeException(e);
+                }
+            }).toList();
 
             //Write CSV
-            var csvFile = Paths.get(System.getProperty("user.dir"), "..", "output.csv");
+            var csvFile = Paths.get(System.getProperty("user.dir"), "..", "phase-"+phase+".csv");
+            System.out.println("\nRunning all simulations took " + ((System.currentTimeMillis() - startMillis) / 1000) + " seconds");
+            System.out.println("Writing lines to " + csvFile);
             Files.write(csvFile, csvLines);
         } catch (Exception e) {
             e.printStackTrace();
@@ -118,7 +132,7 @@ public class Main {
     }
 
     static void scheduleSimulation(int forestDensity, int windListIndex, String strategy, int ignitionLocation) {
-        workerThreadPool.submit(() -> {
+        tasks.add(() -> {
             HeadlessWorkspace workspace = null;
             synchronized (availableWorkspaces) {
                 workspace = availableWorkspaces.removeFirst();
@@ -150,7 +164,8 @@ public class Main {
                 else if (windListIndex <= 24)
                     direction = windListIndex - 16;
 
-                String line = String.format("%d,%d,%d,%s,%.2f,%s",
+                printProgress();
+                return String.format("%d,%d,%d,%s,%.2f,%s",
                         forestDensity,
                         windSpeed,
                         direction,
@@ -158,8 +173,6 @@ public class Main {
                         percentageBurned,
                         villageDamaged ? "True" : "False"
                 );
-                csvLines.add(line);
-                System.out.print(amountOfRanSimulations + " / " + amountOfSimulationsToRun + "\r");
             } catch (Exception ex) {
                 ex.printStackTrace();
             }
@@ -168,8 +181,19 @@ public class Main {
                     availableWorkspaces.add(workspace);
                 }
             }
+            return null;
         });
         amountOfSimulationsToRun++;
+    }
+
+    private static synchronized void printProgress(){
+        var elapsed = System.currentTimeMillis() - startMillis;
+        var average = elapsed / amountOfRanSimulations;
+        var eta = ((average * amountOfSimulationsToRun) - elapsed) / 1000;
+        var etaString = eta + " seconds to go";
+        if(eta > 60)
+            etaString = (eta / 60) + " minutes and " + (eta % 60) + " seconds to go";
+        System.out.print("Ran " + amountOfRanSimulations + " / " + amountOfSimulationsToRun + " sims. "+etaString+".\r");
     }
 
 
