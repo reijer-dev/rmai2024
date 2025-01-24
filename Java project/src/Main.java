@@ -2,7 +2,9 @@ import org.nlogo.headless.HeadlessWorkspace;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.List;
+import java.util.Locale;
 import java.util.concurrent.*;
 
 import static java.lang.System.exit;
@@ -34,7 +36,7 @@ public class Main {
             //Initialize workspaces
             var nlogoFile = Paths.get(System.getProperty("user.dir"), "..", "Simple Fire extension.nlogo");
             int hardwareThreads = Runtime.getRuntime().availableProcessors();
-            hardwareThreads = 8;
+            //hardwareThreads = 6;
             workerThreadPool = Executors.newFixedThreadPool(hardwareThreads);
 
             //Create as many workspaces as there are threads
@@ -45,22 +47,21 @@ public class Main {
                 System.out.println("# Workspaces: " + availableWorkspaces.size() + "/" + hardwareThreads);
             }
 
-            var phase = 4;
+            var phase = 2;
 
             startMillis = System.currentTimeMillis();
             if(phase == 2) phase2();
             else if(phase == 3) phase3();
             else if(phase == 4) phase4();
             else testphase();
-            var csvLines = workerThreadPool.invokeAll(tasks).stream().map(stringFuture -> {
+            LinkedList<String> csvLines = new LinkedList<>(workerThreadPool.invokeAll(tasks).stream().map(stringFuture -> {
                 try {
                     return stringFuture.get();
-                } catch (InterruptedException e) {
-                    throw new RuntimeException(e);
-                } catch (ExecutionException e) {
+                } catch (InterruptedException | ExecutionException e) {
                     throw new RuntimeException(e);
                 }
-            }).toList();
+            }).toList());
+            csvLines.addFirst("density,wind_speed,direction,strategy,perc_burned,perc_preburned,village_damaged");
 
             //Write CSV
             var csvFile = Paths.get(System.getProperty("user.dir"), "..", "phase-"+phase+".csv");
@@ -146,6 +147,7 @@ public class Main {
                 workspace.command("set strategy \"" + strategy + "\"");
                 workspace.command("random-seed 0");
                 workspace.command("run-full");
+                var percentagePreburned = ((Double) workspace.report("preburned-percentage"));
                 var percentageBurned = ((Double) workspace.report("percent-burned"));
                 var villageDamaged = (Boolean) workspace.report("village-damaged");
                 amountOfRanSimulations++;
@@ -165,14 +167,17 @@ public class Main {
                     direction = windListIndex - 16;
 
                 printProgress();
-                return String.format("%d,%d,%d,%s,%.2f,%s",
+
+                var result = String.format(Locale.US, "%d,%d,%d,%s,%.2f,%.2f,%s",
                         forestDensity,
                         windSpeed,
                         direction,
                         strategy,
                         percentageBurned,
+                        percentagePreburned,
                         villageDamaged ? "True" : "False"
                 );
+                return result;
             } catch (Exception ex) {
                 ex.printStackTrace();
             }
