@@ -120,7 +120,7 @@ public class Main {
             for (var density = 50; density <= 90; density += 5) {
                 for (int z = 0; z < windList.length; z++) {
                     for (int location = 1; location <= 4; location += 1) {
-                        for (int seed = 0; seed < 4; seed++) {
+                        for (int seed = 0; seed < 10; seed++) {
                             scheduleSimulation(density, z, strategy, location, seed);
                         }
                     }
